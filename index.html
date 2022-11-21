@@ -1,18 +1,253 @@
-﻿<!doctype html>  
-<html>  
-<head>    
-<title>Heart</title>   
-<meta charset="UTF-8">    
-</head>    
-<body>    
-	<canvas id="c"></canvas>    
-	<script>    
-   		var b = document.body;
-    	var c = document.getElementsByTagName('canvas')[0];
-    	var a = c.getContext('2d');
-	</script>
-    <script>
-	eval('var M=Math,n=M.pow,i,E=2,F="rgba(233,61,109,",d=M.cos,z=M.sin,L=1,u=30,W=window,w=c.width=W.innerWidth,h=c.height=W.innerHeight,r=_1){return M.random()*2-1},y="px Arial",v="爱你",q="♥",X=w/2,Y=h/2,T=4,p=_1){var e=this;e.g=_1){e.x=X;e.y=Y;e.k=0;e.l=0;e.t=M.random()*19000;e.c=e.t};e.d=_1){a.fillStyle=F+(e.c/e.t)+")";a.fillText(q,e.x,e.y);e.c-=50;e.x+=e.k;e.y+=e.l;e.k=e.k+r();e.l=e.l+r();if(e.c<0||e.x>w||e.x<0||e.y>h||e.y<0){e.g()}};e.g()},A,B;a.textAlign="center";a.strokeStyle="#000";a.lineWidth=2;for(i=0;i<350;i++){M[i]=new p()}setInterval(_1){a.clearRect(0,0,w,h);a.font=u+y;X=(w/6*n(z(T),3)+w/2);Y=0.8*(-h/40*(13*d(T)-5*d(2*T)-2*d(3*T)-d(4*T))+h/2.3);T+=(z(T)+3)/99;for(i=0;i<350;i++){with(M[i]){A=(x/w-0.5)*2,B=-(y/h-0.5);if(L&&(A*A+2*n((B-0.5*n(M.abs(A),0.5)),2))>0.11){k=l=0}d()}}a.font=120+y;if(E>0.1){if(E<1){a.fillStyle=F+E+")";a.fillText("Click",w/2,h/2)}E-=0.02}a.fillStyle="#E93D6D";a.fillText(v,X,Y+u);a.strokeText(v,X,Y+u)},50);b.bgColor="#FFEFF2";c.onmouseup=_1){L=(L)?0:1}'.replace(/(_1)/g,'function('))
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>starwu送你一个贪食蛇</title>
+    <style type="text/css">
+        #pannel table {
+        border-collapse: collapse;
+        }
+        #pannel table td {
+        border: 1px solid #808080;
+        width: 10px;
+        height: 10px;
+        font-size: 0;
+        line-height: 0;
+        overflow: hidden;
+        }
+        #pannel table .snake {
+        background-color: green;
+        }
+        #pannel table .food {
+        background-color: blue;
+        }
+    </style>
+    <script type="text/javascript">
+ 
+    var Direction = new function () {
+        this.UP = 38;
+        this.RIGHT = 39;
+        this.DOWN = 40;
+        this.LEFT = 37;
+    };
+ 
+ 
+    var Common = new function () {
+        this.width = 20; /*水平方向方格数*/
+        this.height = 20; /*垂直方向方格数*/
+        this.speed = 250; /*速度 值越小越快*/
+        this.workThread = null;
+    };
+ 
+ 
+    var Main = new function () {
+        var control = new Control();
+        window.onload = function () {
+        control.Init("pannel");
+            /*开始按钮*/
+            document.getElementById("btnStart").onclick = function () {
+                control.Start();
+                this.disabled = true;
+                document.getElementById("selSpeed").disabled = true;
+                document.getElementById("selSize").disabled = true;
+            };
+            /*调速度按钮*/
+            document.getElementById("selSpeed").onchange = function () {
+                Common.speed = this.value;
+            }
+            /*调大小按钮*/
+            document.getElementById("selSize").onchange = function () {
+                Common.width = this.value;
+                Common.height = this.value;
+                control.Init("pannel");
+            }
+        };
+    };
+    /*控制器*/
+    function Control() {
+        this.snake = new Snake();
+        this.food = new Food();
+        /*初始化函数，创建表格*/
+            this.Init = function (pid) {
+            var html = [];
+            html.push("<table>");
+            for (var y = 0; y < Common.height; y++) {
+                html.push("<tr>");
+                for (var x = 0; x < Common.width; x++) {
+                    html.push('<td id="box_' + x + "_" + y + '"> </td>');
+                }
+                html.push("</tr>");
+            }
+            html.push("</table>");
+            this.pannel = document.getElementById(pid);
+            this.pannel.innerHTML = html.join("");
+        };
+        /*开始游戏 - 监听键盘、创建食物、刷新界面线程*/
+        this.Start = function () {
+            var me = this;
+            this.MoveSnake = function (ev) {
+                var evt = window.event || ev;
+                me.snake.SetDir(evt.keyCode);
+            };
+            try {
+                document.attachEvent("onkeydown", this.MoveSnake);
+            } catch (e) {
+                document.addEventListener("keydown", this.MoveSnake, false);
+            }
+            this.food.Create();
+            Common.workThread = setInterval(function () {
+                me.snake.Eat(me.food); me.snake.Move();
+            }, Common.speed);
+        };
+    }
+ 
+ 
+    /*蛇*/
+    function Snake() {
+        this.isDone = false;
+        this.dir = Direction.RIGHT;
+        this.pos = new Array(new Position());
+        /*移动 - 擦除尾部，向前移动，判断游戏结束(咬到自己或者移出边界)*/
+        this.Move = function () {
+            document.getElementById("box_" + this.pos[0].X + "_" + this.pos[0].Y).className = "";
+        //所有 向前移动一步
+            for (var i = 0; i < this.pos.length - 1; i++) {
+                this.pos[i].X = this.pos[i + 1].X;
+                this.pos[i].Y = this.pos[i + 1].Y;
+            }
+        //重新设置头的位置
+            var head = this.pos[this.pos.length - 1];
+            switch (this.dir) {
+                case Direction.UP:
+                head.Y--;
+                break;
+                case Direction.RIGHT:
+                head.X++;
+                break;
+                case Direction.DOWN:
+                head.Y++;
+                break;
+                case Direction.LEFT:
+                head.X--;
+                break;
+            }
+            this.pos[this.pos.length - 1] = head;
+            //遍历画蛇，同时判断游戏结束
+            for (var i = 0; i < this.pos.length; i++) {
+                var isExits = false;
+                for (var j = i + 1; j < this.pos.length; j++)
+                    if (this.pos[j].X == this.pos[i].X && this.pos[j].Y == this.pos[i].Y) {
+                        isExits = true;
+                        break;
+                    }
+                    if (isExits) { 
+                        this.Over();
+                        /*咬自己*/ 
+                        break; 
+                    }
+                    var obj = document.getElementById("box_" + this.pos[i].X + "_" + this.pos[i].Y);
+                    if (obj) obj.className = "snake"; 
+                    else { 
+                        this.Over();
+                        /*移出边界*/ 
+                        break; 
+                    }
+            }
+                this.isDone = true;
+        };
+        /*游戏结束*/
+        this.Over = function () {
+            clearInterval(Common.workThread);
+            alert("游戏结束！");
+            location.reload();
+        }
+    /*吃食物*/
+        this.Eat = function (food) {
+            var head = this.pos[this.pos.length - 1];
+            var isEat = false;
+            switch (this.dir) {
+                case Direction.UP:
+                if (head.X == food.pos.X && head.Y == food.pos.Y + 1) isEat = true;
+                break;
+                case Direction.RIGHT:
+                if (head.Y == food.pos.Y && head.X == food.pos.X - 1) isEat = true;
+                break;
+                case Direction.DOWN:
+                if (head.X == food.pos.X && head.Y == food.pos.Y - 1) isEat = true;
+                break;
+                case Direction.LEFT:
+                if (head.Y == food.pos.Y && head.X == food.pos.X + 1) isEat = true;
+                break;
+            }
+            if (isEat) {
+                this.pos[this.pos.length] = new Position(food.pos.X, food.pos.Y);
+                food.Create(this.pos);
+            }
+        };
+        /*控制移动方向*/
+        this.SetDir = function (dir) {
+            switch (dir) {
+                case Direction.UP:
+                if (this.isDone && this.dir != Direction.DOWN) { this.dir = dir; this.isDone = false; }
+                break;
+                case Direction.RIGHT:
+                if (this.isDone && this.dir != Direction.LEFT) { this.dir = dir; this.isDone = false; }
+                break;
+                case Direction.DOWN:
+                if (this.isDone && this.dir != Direction.UP) { this.dir = dir; this.isDone = false; }
+                break;
+                case Direction.LEFT:
+                if (this.isDone && this.dir != Direction.RIGHT) { this.dir = dir; this.isDone = false; }
+                break;
+            }
+        };
+    }
+    /*食物*/
+    function Food() {
+        this.pos = new Position();
+        /*创建食物 - 随机位置创建立*/
+            this.Create = function (pos) {
+                document.getElementById("box_" + this.pos.X + "_" + this.pos.Y).className = "";
+                var x = 0, y = 0, isCover = false;
+                /*排除蛇的位置*/
+                do {
+                    x = parseInt(Math.random() * (Common.width - 1));
+                    y = parseInt(Math.random() * (Common.height - 1));
+                    isCover = false;
+                    if (pos instanceof Array) {
+                        for (var i = 0; i < pos.length; i++) {
+                            if (x == pos[i].X && y == pos[i].Y) {
+                                isCover = true;
+                                break;
+                            }
+                        }
+                    }
+                } while (isCover);
+                this.pos = new Position(x, y);
+                document.getElementById("box_" + x + "_" + y).className = "food";
+            };
+    }
+ 
+    function Position(x, y) {
+        this.X = 0;
+        this.Y = 0;
+        if (arguments.length >= 1) this.X = x;
+        if (arguments.length >= 2) this.Y = y;
+    }
     </script>
-</body> 
-</html>
+</head>
+    <body>
+    <div id="pannel" style="margin-bottom: 10px;"></div>
+        <select id="selSize">
+            <option value="20">20*20</option>
+            <option value="30">30*30</option>
+            <option value="40">40*40</option>
+        </select>
+        <select id="selSpeed">
+            <option value="500">速度-慢</option>
+            <option value="250" selected="selected">速度-中</option>
+            <option value="100">速度-快</option>
+        </select>
+    <input type="button" id="btnStart" value="开始" />
+    </body>
+</html>  -->
